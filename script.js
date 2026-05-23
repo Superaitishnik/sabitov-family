@@ -4,16 +4,37 @@
 const SUPABASE_URL = "https://ethpdfcntfdbuhaqzmwq.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_T4B3UJpMTZy9zCrXg9-hgQ_h8J4orO0";
 
-let supabase = null;
+let supabaseClient = null;
 
 // Инициализация Supabase только если ключи валидны
 if (SUPABASE_URL && SUPABASE_URL.indexOf("your-project-url") === -1 && window.supabase) {
     try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log("Supabase успешно подключен!");
     } catch (e) {
         console.error("Ошибка Supabase, переходим в локальный режим:", e);
-        supabase = null;
+        supabaseClient = null;
+    }
+}
+
+// Безопасная работа с localStorage
+function safeLocalSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch(e) {
+        console.warn(`Ошибка записи localStorage (${key}):`, e);
+        return false;
+    }
+}
+
+function safeLocalGet(key, defaultValue = null) {
+    try {
+        const val = localStorage.getItem(key);
+        return val !== null ? val : defaultValue;
+    } catch(e) {
+        console.warn(`Ошибка чтения localStorage (${key}):`, e);
+        return defaultValue;
     }
 }
 
@@ -23,22 +44,22 @@ const translations = {
         slide1_title: "Добро пожаловать<br>в Sabitov", 
         slide1_sub: "Мессенджер нового поколения<br>с максимальной конфиденциальностью",
         slide2_title: "Шифрование<br>от начала до конца", 
-        slide2_sub: "Все сообщения защищены сквозным шифрованием.",
+        slide2_sub: "Все сообщения защищены сквозным шифрованием.<br>Никто не может прочитать ваши данные",
         slide3_title: "Ghost Mode", 
-        slide3_sub: "Станьте невидимым. Никто не узнает, что вы онлайн.",
+        slide3_sub: "Станьте невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете",
         slide4_title: "Протокол Fenix", 
-        slide4_sub: "Одно нажатие — и все данные будут безвозвратно удалены.",
+        slide4_sub: "Одно нажатие — и все ваши данные будут безвозвратно удалены с наших серверов",
         slide5_title: "SabitovID", 
-        slide5_sub: "Никаких телефонов и почты. Только ваш уникальный SabitovID.",
+        slide5_sub: "Никаких телефонов и почты.<br>Только ваш уникальный SabitovID<br>и PIN-код для входа",
         next: "Далее", 
         skip: "Пропустить", 
         continue: "Продолжить",
         reg1_title: "Создайте имя пользователя", 
-        reg1_sub: "Это ваш уникальный идентификатор в Sabitov.",
+        reg1_sub: "Это ваш уникальный идентификатор в Sabitov.<br>Без номера телефона, без почты.",
         reg2_title: "Как вас зовут?", 
         reg2_sub: "Это имя увидят другие пользователи",
         reg3_title: "Ваш SabitovID", 
-        reg3_sub: "Запомните ваш SabitovID. Он нужен для входа.",
+        reg3_sub: "Запомните ваш SabitovID.<br>Он понадобится для входа в аккаунт.",
         pin1_title: "Создайте PIN-код", 
         pin1_sub: "4-значный код для защиты аккаунта",
         pin2_title: "Подтвердите PIN", 
@@ -71,7 +92,7 @@ const translations = {
     }
 };
 
-// Глобальное состояние
+// Глобальное состояние приложения
 let currentSlide = 0;
 let createdPinString = "";
 let confirmedPinString = "";
@@ -84,76 +105,82 @@ let localDatabase = { contacts: [], groups: [], messages: [] };
 const getById = (name) => document.getElementById(name);
 const getAll = (selector) => document.querySelectorAll(selector);
 
-// Инициализация интерфейса после загрузки DOM
+// ==========================================================================
+// ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// ==========================================================================
 window.addEventListener('DOMContentLoaded', () => {
     console.log("DOM загружен, инициализация...");
     
-    // Загрузка сохраненных данных
-    const savedUser = localStorage.getItem('sabitov_session_user');
-    const savedTheme = localStorage.getItem('sabitov_theme') || 'light-theme';
+    try {
+        initEventListeners();
+    } catch(e) {
+        console.error("Ошибка при инициализации обработчиков:", e);
+    }
+
+    // Загрузка сохраненных настроек темы
+    const savedTheme = safeLocalGet('sabitov_theme', 'light-theme');
     document.body.className = savedTheme;
-    
     const themeBtn = getById('themeToggleBtn');
     if (themeBtn) {
         themeBtn.textContent = (savedTheme === 'dark-theme') ? '☀️' : '🌙';
     }
 
-    const savedLocalDB = localStorage.getItem('sabitov_local_db');
+    // Загрузка локальной базы данных чатов/сообщений
+    const savedLocalDB = safeLocalGet('sabitov_local_db');
     if (savedLocalDB) {
         try { 
             localDatabase = JSON.parse(savedLocalDB); 
-            // Убедимся, что структура корректна
             if (!localDatabase.contacts) localDatabase.contacts = [];
             if (!localDatabase.groups) localDatabase.groups = [];
             if (!localDatabase.messages) localDatabase.messages = [];
         } catch(e) { 
-            console.error("Ошибка загрузки БД:", e);
-            localDatabase = { contacts: [], groups: [], messages: [] };
+            console.error("Ошибка загрузки локальной БД:", e);
         }
     }
 
-    // Если пользователь уже вошел — сразу пускаем в приложение
+    // Проверка авторизации пользователя
+    const savedUser = safeLocalGet('sabitov_session_user');
     if (savedUser) {
         try {
             myProfileData = JSON.parse(savedUser);
+            
             const sidText = getById('sabitovIdText');
             const nameInput = getById('nameInput');
             const usernameInput = getById('usernameInput');
-            
             if (sidText) sidText.textContent = myProfileData.id;
-            if (nameInput) nameInput.value = myProfileData.name;
-            if (usernameInput) usernameInput.value = myProfileData.username;
+            if (nameInput) nameInput.value = myProfileData.name || '';
+            if (usernameInput) usernameInput.value = myProfileData.username || '';
             
-            hideAllScreens();
             showMainAppScreen();
-            if (supabase) connectRealtimeMessages();
+            if (supabaseClient) connectRealtimeMessages();
         } catch(e) {
-            console.error("Ошибка загрузки пользователя:", e);
+            console.error("Ошибка парсинга сессии пользователя:", e);
             showSliderScreen();
         }
     } else {
-        // Иначе показываем онбординг слайдер
         showSliderScreen();
     }
 
-    // Инициализируем обработчики ПОСЛЕ того как DOM готов
-    initEventListeners();
+    // Первичный рендеринг контактов и истории чатов
     renderLocalChatsAndContacts();
 });
 
-// Функция полного скрытия всех экранов
+// ==========================================================================
+// УПРАВЛЕНИЕ ЭКРАНАМИ
+// ==========================================================================
 function hideAllScreens() {
     const screens = [
-        'topBar', 'sliderWindow', 'bottomArea', 'regScreen', 
+        'sliderWindow', 'bottomArea', 'regScreen', 
         'nameScreen', 'idScreen', 'createPinScreen', 'confirmPinScreen', 'mainAppScreen'
     ];
     screens.forEach(s => {
         const el = getById(s);
         if (el) el.style.display = 'none';
     });
+    const topBar = getById('topBar');
+    if (topBar) topBar.style.display = 'none';
 }
 
-// Показ конкретных экранов
 function showSliderScreen() {
     hideAllScreens();
     const topBar = getById('topBar');
@@ -166,7 +193,6 @@ function showSliderScreen() {
     updateSlider();
 }
 
-// Экран юзернейма
 function showUsernameScreen() {
     hideAllScreens();
     const regScreen = getById('regScreen');
@@ -193,7 +219,7 @@ function showIdScreen() {
     if (idScreen) {
         idScreen.style.display = 'flex';
         const sidText = getById('sabitovIdText');
-        if (sidText && sidText.textContent === "SID-00000000") {
+        if (sidText && (sidText.textContent === "SID-00000000" || !sidText.textContent)) {
             sidText.textContent = generateSabitovID();
         }
     }
@@ -220,8 +246,8 @@ function showMainAppScreen() {
     
     const profileUserTitle = getById('profileUserTitle');
     const nameInput = getById('nameInput');
-    if (profileUserTitle && nameInput) {
-        profileUserTitle.textContent = nameInput.value.trim() || "Пользователь";
+    if (profileUserTitle) {
+        profileUserTitle.textContent = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "Пользователь";
     }
     
     const profileIdTitle = getById('profileIdTitle');
@@ -234,20 +260,26 @@ function showMainAppScreen() {
     if (mainAppScreen) mainAppScreen.style.display = 'flex';
 }
 
-// Обновление состояния слайдера
 function updateSlider() {
     const slidesWrapper = getById('slidesWrapper');
     if (slidesWrapper) {
-        slidesWrapper.style.transform = `translateX(-${currentSlide * 20}%)`;
+        slidesWrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
     }
     
     const dots = getAll('.dot');
-    dots.forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
+    dots.forEach((dot, index) => { 
+        dot.classList.toggle('active', index === currentSlide); 
+    });
     
     const skipBtn = getById('skipBtn');
     if (skipBtn) {
-        if (currentSlide > 0 && currentSlide < 4) skipBtn.classList.add('visible');
-        else skipBtn.classList.remove('visible');
+        if (currentSlide > 0 && currentSlide < 4) {
+            skipBtn.style.visibility = 'visible';
+            skipBtn.style.opacity = '1';
+        } else {
+            skipBtn.style.visibility = 'hidden';
+            skipBtn.style.opacity = '0';
+        }
     }
     
     const nextBtn = getById('nextBtn');
@@ -285,19 +317,58 @@ function showToast(message) {
     }, 2200);
 }
 
-// Инициализация всех обработчиков событий
-function initEventListeners() {
-    console.log("Инициализация обработчиков событий...");
+// ==========================================================================
+// ПРОВЕРКА СУЩЕСТВОВАНИЯ КОНТАКТА ЧЕРЕЗ SUPABASE
+// ==========================================================================
+async function checkUserExists(sabitovId) {
+    if (!supabaseClient) {
+        console.log("Supabase не подключен, пропускаем проверку");
+        return true; // В локальном режиме разрешаем добавление
+    }
     
-    // Выбор языка (Дропдаун)
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('id')
+            .eq('id', sabitovId)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                showToast(`Пользователь с ID ${sabitovId} не найден в системе`);
+                return false;
+            }
+            console.error("Ошибка при проверке пользователя:", error);
+            return false;
+        }
+        
+        if (data && data.id) {
+            return true;
+        } else {
+            showToast(`Пользователь с ID ${sabitovId} не существует`);
+            return false;
+        }
+    } catch(e) {
+        console.error("Исключение при проверке пользователя:", e);
+        showToast("Ошибка при проверке контакта");
+        return false;
+    }
+}
+
+// ==========================================================================
+// ОБРАБОТЧИКИ СОБЫТИЙ
+// ==========================================================================
+function initEventListeners() {
+    console.log("initEventListeners запущен");
+    
+    // Переключатель языков
     const langBtn = getById('langBtn');
     const langMenu = getById('langMenu');
-    
     if (langBtn && langMenu) {
         langBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isFlex = langMenu.style.display === 'flex';
-            langMenu.style.display = isFlex ? 'none' : 'flex';
+            const isOpen = langMenu.style.display === 'flex';
+            langMenu.style.display = isOpen ? 'none' : 'flex';
         });
     }
 
@@ -306,31 +377,33 @@ function initEventListeners() {
     });
 
     if (langMenu) {
-        langMenu.addEventListener('click', (e) => {
-            const targetLang = e.target.dataset.lang;
-            if (!targetLang) return;
-            if (langBtn) langBtn.textContent = `🌐 ${targetLang.toUpperCase()}`;
-            applyLanguage(targetLang);
+        langMenu.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetLang = e.target.dataset.lang;
+                if (!targetLang) return;
+                if (langBtn) langBtn.textContent = `🌐 ${targetLang.toUpperCase()}`;
+                applyLanguage(targetLang);
+            });
         });
     }
 
-    // Кнопка смены темы
+    // Переключатель тем оформления
     const themeToggleBtn = getById('themeToggleBtn');
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
             if (document.body.classList.contains('light-theme')) {
                 document.body.classList.replace('light-theme', 'dark-theme');
                 themeToggleBtn.textContent = '☀️';
-                localStorage.setItem('sabitov_theme', 'dark-theme');
+                safeLocalSet('sabitov_theme', 'dark-theme');
             } else {
                 document.body.classList.replace('dark-theme', 'light-theme');
                 themeToggleBtn.textContent = '🌙';
-                localStorage.setItem('sabitov_theme', 'light-theme');
+                safeLocalSet('sabitov_theme', 'light-theme');
             }
         });
     }
 
-    // Кнопки онбординга
+    // Управление кнопками Слайдера
     const nextBtn = getById('nextBtn');
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
@@ -341,6 +414,8 @@ function initEventListeners() {
                 showUsernameScreen(); 
             }
         });
+    } else {
+        console.error("nextBtn не найден");
     }
 
     const skipBtn = getById('skipBtn');
@@ -351,33 +426,27 @@ function initEventListeners() {
         });
     }
 
-    // Стрелочки назад
-    const backToSliderBtn = getById('backToSliderBtn');
-    if (backToSliderBtn) backToSliderBtn.addEventListener('click', showSliderScreen);
-    
-    const backToRegBtn = getById('backToRegBtn');
-    if (backToRegBtn) backToRegBtn.addEventListener('click', showUsernameScreen);
-    
-    const backToNameBtn = getById('backToNameBtn');
-    if (backToNameBtn) backToNameBtn.addEventListener('click', showNameScreen);
-    
-    const backToIdBtn = getById('backToIdBtn');
-    if (backToIdBtn) backToIdBtn.addEventListener('click', showIdScreen);
-    
-    const backToCreatePinBtn = getById('backToCreatePinBtn');
-    if (backToCreatePinBtn) backToCreatePinBtn.addEventListener('click', showCreatePinScreen);
+    // Стрелочки возврата назад на этапах регистрации
+    const backToSlider = getById('backToSliderBtn');
+    if (backToSlider) backToSlider.addEventListener('click', showSliderScreen);
+    const backToReg = getById('backToRegBtn');
+    if (backToReg) backToReg.addEventListener('click', showUsernameScreen);
+    const backToName = getById('backToNameBtn');
+    if (backToName) backToName.addEventListener('click', showNameScreen);
+    const backToId = getById('backToIdBtn');
+    if (backToId) backToId.addEventListener('click', showIdScreen);
+    const backToCreatePin = getById('backToCreatePinBtn');
+    if (backToCreatePin) backToCreatePin.addEventListener('click', showCreatePinScreen);
 
-    // Кнопки переходов регистрации
-    const regNextBtn = getById('regNextBtn');
-    if (regNextBtn) regNextBtn.addEventListener('click', showNameScreen);
-    
-    const nameNextBtn = getById('nameNextBtn');
-    if (nameNextBtn) nameNextBtn.addEventListener('click', showIdScreen);
-    
-    const idNextBtn = getById('idNextBtn');
-    if (idNextBtn) idNextBtn.addEventListener('click', showCreatePinScreen);
+    // Кнопки "Далее" и "Продолжить" в регистрации
+    const regNext = getById('regNextBtn');
+    if (regNext) regNext.addEventListener('click', showNameScreen);
+    const nameNext = getById('nameNextBtn');
+    if (nameNext) nameNext.addEventListener('click', showIdScreen);
+    const idNext = getById('idNextBtn');
+    if (idNext) idNext.addEventListener('click', showCreatePinScreen);
 
-    // Валидация полей ввода
+    // Валидация инпута Username
     const usernameInput = getById('usernameInput');
     if (usernameInput) {
         usernameInput.addEventListener('input', () => {
@@ -390,6 +459,7 @@ function initEventListeners() {
         });
     }
 
+    // Валидация инпута Имени
     const nameInputLocal = getById('nameInput');
     if (nameInputLocal) {
         nameInputLocal.addEventListener('input', () => {
@@ -417,7 +487,7 @@ function initEventListeners() {
         });
     }
 
-    // Клавиатура создания PIN
+    // PIN-клавиатуры
     const createPinKeyboard = getById('createPinKeyboard');
     if (createPinKeyboard) {
         createPinKeyboard.addEventListener('click', (e) => {
@@ -426,8 +496,7 @@ function initEventListeners() {
             const value = btn.dataset.val;
             if (value === 'back') { 
                 createdPinString = createdPinString.slice(0, -1); 
-            } 
-            else if (createdPinString.length < 4) { 
+            } else if (createdPinString.length < 4) { 
                 createdPinString += value; 
             }
             updatePinDots(getAll('#createPinDots .pin-dot'), createdPinString);
@@ -437,7 +506,6 @@ function initEventListeners() {
         });
     }
 
-    // Клавиатура подтверждения PIN
     const confirmPinKeyboard = getById('confirmPinKeyboard');
     if (confirmPinKeyboard) {
         confirmPinKeyboard.addEventListener('click', (e) => {
@@ -446,8 +514,7 @@ function initEventListeners() {
             const value = btn.dataset.val;
             if (value === 'back') { 
                 confirmedPinString = confirmedPinString.slice(0, -1); 
-            } 
-            else if (confirmedPinString.length < 4) { 
+            } else if (confirmedPinString.length < 4) { 
                 confirmedPinString += value; 
             }
             updatePinDots(getAll('#confirmPinDots .pin-dot'), confirmedPinString);
@@ -456,22 +523,20 @@ function initEventListeners() {
                 if (confirmedPinString === createdPinString) {
                     setTimeout(() => {
                         const sidText = getById('sabitovIdText');
-                        const nameInputVal = getById('nameInput');
-                        const usernameInputVal = getById('usernameInput');
+                        const nameInp = getById('nameInput');
+                        const userInp = getById('usernameInput');
                         
                         myProfileData = {
                             id: sidText ? sidText.textContent : 'SID-UNKNOWN',
-                            name: nameInputVal ? nameInputVal.value.trim() : 'User',
-                            username: usernameInputVal ? usernameInputVal.value.trim() : 'username'
+                            name: nameInp ? nameInp.value.trim() : 'User',
+                            username: userInp ? userInp.value.trim() : 'username'
                         };
-                        localStorage.setItem('sabitov_session_user', JSON.stringify(myProfileData));
+                        safeLocalSet('sabitov_session_user', JSON.stringify(myProfileData));
                         
-                        if (supabase) {
-                            try { 
-                                supabase.from('users').insert([myProfileData]).then(r => {
-                                    console.log("Пользователь сохранен в Supabase");
-                                }).catch(err => console.error(err));
-                            } catch(err) { console.error(err); }
+                        if (supabaseClient) {
+                            supabaseClient.from('users').insert([myProfileData])
+                                .then(() => console.log("Профиль сохранен в Supabase!"))
+                                .catch(err => console.error(err));
                         }
 
                         showToast('Регистрация успешно завершена!');
@@ -488,10 +553,9 @@ function initEventListeners() {
         });
     }
 
-    // Переключение вкладок приложения
+    // Вкладки нижнего меню
     const tabButtons = getAll('.tab-item-btn');
     const tabContents = getAll('.tab-content-block');
-    
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
             const targetTab = button.dataset.tab;
@@ -509,7 +573,7 @@ function initEventListeners() {
         });
     });
 
-    // Действия Telegram-Style меню
+    // Управление слоем "Новое сообщение"
     const topOpenMenuBtn = getById('topOpenMenuBtn');
     const newChatMenuLayer = getById('newChatMenuLayer');
     if (topOpenMenuBtn && newChatMenuLayer) {
@@ -525,6 +589,7 @@ function initEventListeners() {
         });
     }
     
+    // Модальное окно Нового Контакта (с проверкой через Supabase)
     const tgNewContactBtn = getById('tgNewContactBtn');
     const contactModal = getById('contactModal');
     if (tgNewContactBtn && contactModal) {
@@ -540,7 +605,6 @@ function initEventListeners() {
         });
     }
 
-    // Сохранить новый контакт
     const saveContactModalBtn = getById('saveContactModalBtn');
     if (saveContactModalBtn) {
         saveContactModalBtn.addEventListener('click', async () => {
@@ -550,16 +614,34 @@ function initEventListeners() {
             const id = modalContactId ? modalContactId.value.trim() : '';
             const name = modalContactName ? modalContactName.value.trim() : '';
             
-            if (!id || !name) return;
+            if (!id || !name) {
+                showToast("Заполните все поля");
+                return;
+            }
+            
+            // Проверяем, существует ли пользователь в Supabase
+            const userExists = await checkUserExists(id);
+            if (!userExists) {
+                return; // Сообщение об ошибке уже показано в checkUserExists
+            }
+
+            // Проверяем, не добавлен ли уже этот контакт
+            const alreadyExists = localDatabase.contacts.some(c => c.id === id);
+            if (alreadyExists) {
+                showToast("Этот контакт уже добавлен");
+                return;
+            }
 
             const newContact = { id, name, isGroup: false };
             localDatabase.contacts.push(newContact);
-            localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+            safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
 
-            if (supabase) {
+            if (supabaseClient && myProfileData) {
                 try { 
-                    await supabase.from('contacts').insert([{ user_id: myProfileData?.id, contact_sid: id, contact_name: name }]); 
-                } catch(e){console.error(e);}
+                    await supabaseClient.from('contacts').insert([{ user_id: myProfileData.id, contact_sid: id, contact_name: name }]); 
+                } catch(e){
+                    console.error("Ошибка сохранения контакта в Supabase:", e);
+                }
             }
 
             if (modalContactId) modalContactId.value = '';
@@ -570,7 +652,7 @@ function initEventListeners() {
         });
     }
 
-    // Кнопка открытия модалки новой группы
+    // Модальное окно Новой Группы
     const tgNewGroupBtn = getById('tgNewGroupBtn');
     const groupModal = getById('groupModal');
     if (tgNewGroupBtn && groupModal) {
@@ -579,12 +661,16 @@ function initEventListeners() {
             if (!modalGroupContactsList) return;
             
             modalGroupContactsList.innerHTML = '';
-            localDatabase.contacts.forEach(c => {
-                const item = document.createElement('label');
-                item.className = 'modal-checkbox-item';
-                item.innerHTML = `<input type="checkbox" value="${c.id}"> ${c.name}`;
-                modalGroupContactsList.appendChild(item);
-            });
+            if (localDatabase.contacts.length === 0) {
+                modalGroupContactsList.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">У вас нет контактов для добавления</div>';
+            } else {
+                localDatabase.contacts.forEach(c => {
+                    const item = document.createElement('label');
+                    item.className = 'modal-checkbox-item';
+                    item.innerHTML = `<input type="checkbox" value="${c.id}"> <span>${c.name}</span>`;
+                    modalGroupContactsList.appendChild(item);
+                });
+            }
             groupModal.style.display = 'flex';
         });
     }
@@ -596,13 +682,15 @@ function initEventListeners() {
         });
     }
 
-    // Сохранить новую группу
     const saveGroupModalBtn = getById('saveGroupModalBtn');
     if (saveGroupModalBtn) {
         saveGroupModalBtn.addEventListener('click', async () => {
             const modalGroupName = getById('modalGroupName');
             const groupName = modalGroupName ? modalGroupName.value.trim() : '';
-            if (!groupName) return;
+            if (!groupName) {
+                showToast("Введите название группы");
+                return;
+            }
 
             const checkedBoxes = getAll('#modalGroupContactsList input:checked');
             const members = [myProfileData ? myProfileData.id : 'me'];
@@ -610,12 +698,14 @@ function initEventListeners() {
 
             const newGroup = { id: 'GROUP-' + Date.now(), name: groupName, isGroup: true, members: members };
             localDatabase.groups.push(newGroup);
-            localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+            safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
 
-            if (supabase) {
+            if (supabaseClient && myProfileData) {
                 try { 
-                    await supabase.from('groups').insert([{ group_id: newGroup.id, group_name: groupName, members_list: members }]); 
-                } catch(e){console.error(e);}
+                    await supabaseClient.from('groups').insert([{ group_id: newGroup.id, group_name: groupName, members_list: members, owner_id: myProfileData.id }]); 
+                } catch(e){
+                    console.error("Ошибка сохранения группы в Supabase:", e);
+                }
             }
 
             if (modalGroupName) modalGroupName.value = '';
@@ -625,7 +715,7 @@ function initEventListeners() {
         });
     }
 
-    // Дефолтный клик на техподдержку
+    // Клик по чату "Техподдержка"
     const openSupportChatBlock = getById('openSupportChatBlock');
     if (openSupportChatBlock) {
         openSupportChatBlock.addEventListener('click', () => {
@@ -641,6 +731,7 @@ function initEventListeners() {
         });
     }
 
+    // Кнопка закрытия окна чата
     const closeChatBtn = getById('closeChatBtn');
     const chatRoomLayer = getById('chatRoomLayer');
     if (closeChatBtn && chatRoomLayer) {
@@ -649,7 +740,7 @@ function initEventListeners() {
         });
     }
 
-    // Отправка сообщений по Enter
+    // Отправка текстовых сообщений
     const chatMessageField = getById('chatMessageField');
     if (chatMessageField) {
         chatMessageField.addEventListener('keydown', async (e) => {
@@ -659,23 +750,22 @@ function initEventListeners() {
 
                 const localMsg = { chatId: activeChatId, senderId: myProfileData ? myProfileData.id : 'me', text: txt, isVoice: false };
                 localDatabase.messages.push(localMsg);
-                localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+                safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
                 
                 appendChatMessage(txt, 'sender');
                 chatMessageField.value = '';
                 renderLocalChatsAndContacts();
 
-                if (supabase && myProfileData) {
+                if (supabaseClient && myProfileData) {
                     try { 
-                        await supabase.from('messages').insert([{ chat_id: activeChatId, sender_id: myProfileData.id, message_text: txt }]); 
+                        await supabaseClient.from('messages').insert([{ chat_id: activeChatId, sender_id: myProfileData.id, message_text: txt }]); 
                     } catch(err){console.error(err);}
                 }
 
-                // Эмуляция ответа поддержки
                 if (activeChatId === "support") {
                     setTimeout(() => {
                         const guideHtml = `
-                            <div class="chat-msg-text" style="text-align: left; max-width: 85%;">
+                            <div class="chat-msg-text" style="text-align: left;">
                                 <b>SABITOV EXECUTIVE GUIDE</b><br><br>
                                 Приветствуем в премиальной экосистеме. Ваши операционные принципы:<br><br>
                                 • <b>Автономия данных:</b> Авторизация идет только по вашему SabitovID.<br><br>
@@ -685,7 +775,7 @@ function initEventListeners() {
                             </div>
                         `;
                         localDatabase.messages.push({ chatId: 'support', senderId: 'bot', text: 'GUIDE', specialHtml: guideHtml });
-                        localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+                        safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
                         appendChatMessage('', 'receiver', guideHtml);
                         renderLocalChatsAndContacts();
                     }, 800);
@@ -694,14 +784,14 @@ function initEventListeners() {
         });
     }
 
-    // Плюсик контекстное меню файлов
+    // Контекстное меню вложений
     const chatPlusBtn = getById('chatPlusBtn');
     const attachMenu = getById('attachMenu');
     if (chatPlusBtn && attachMenu) {
         chatPlusBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isFlex = attachMenu.style.display === 'flex';
-            attachMenu.style.display = isFlex ? 'none' : 'flex';
+            const isOpen = attachMenu.style.display === 'flex';
+            attachMenu.style.display = isOpen ? 'none' : 'flex';
         });
     }
     
@@ -729,8 +819,9 @@ function initEventListeners() {
             let html = file.type.startsWith('video/') ? 
                 `<div class="media-message-preview"><video src="${url}" controls></video></div>` : 
                 `<div class="media-message-preview"><img src="${url}"></div>`;
+            
             localDatabase.messages.push({ chatId: activeChatId, senderId: myProfileData ? myProfileData.id : 'me', text: 'Медиафайл', specialHtml: html });
-            localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+            safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
             appendChatMessage('', 'sender', html); 
             renderLocalChatsAndContacts();
             mediaInputHidden.value = '';
@@ -742,15 +833,16 @@ function initEventListeners() {
             const file = e.target.files[0]; 
             if (!file) return;
             const html = `<div class="file-message-box"><span>📄</span><div><b>${file.name}</b><div style="font-size:11px; opacity:0.7;">${(file.size/1024).toFixed(1)} KB</div></div></div>`;
+            
             localDatabase.messages.push({ chatId: activeChatId, senderId: myProfileData ? myProfileData.id : 'me', text: file.name, specialHtml: html });
-            localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+            safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
             appendChatMessage('', 'sender', html); 
             renderLocalChatsAndContacts();
             fileInputHidden.value = '';
         });
     }
 
-    // Голосовые сообщения
+    // Запись голосовых сообщений
     const chatMicBtn = getById('chatMicBtn');
     if (chatMicBtn) {
         let isClickRecording = false;
@@ -758,20 +850,19 @@ function initEventListeners() {
             if (!isClickRecording) {
                 isClickRecording = true;
                 chatMicBtn.classList.add('recording');
-                const chatMessageFieldLocal = getById('chatMessageField');
-                if (chatMessageFieldLocal) { 
-                    chatMessageFieldLocal.placeholder = "Запись премиум-аудио..."; 
-                    chatMessageFieldLocal.disabled = true; 
+                const chatField = getById('chatMessageField');
+                if (chatField) { 
+                    chatField.placeholder = "Запись премиум-аудио..."; 
+                    chatField.disabled = true; 
                 }
                 
-                // Автоматически останавливаем через 4 секунды
                 setTimeout(() => {
                     if (isClickRecording) {
                         isClickRecording = false;
                         chatMicBtn.classList.remove('recording');
-                        if (chatMessageFieldLocal) { 
-                            chatMessageFieldLocal.placeholder = "Сообщение..."; 
-                            chatMessageFieldLocal.disabled = false; 
+                        if (chatField) { 
+                            chatField.placeholder = "Сообщение..."; 
+                            chatField.disabled = false; 
                         }
                         
                         const voiceHtml = `
@@ -789,7 +880,7 @@ function initEventListeners() {
                             </div>
                         `;
                         localDatabase.messages.push({ chatId: activeChatId, senderId: myProfileData ? myProfileData.id : 'me', text: '🎤 Голосовое сообщение', specialHtml: voiceHtml, isVoice: true });
-                        localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+                        safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
                         appendChatMessage('', 'sender', voiceHtml);
                         renderLocalChatsAndContacts();
                     }
@@ -797,17 +888,19 @@ function initEventListeners() {
             } else {
                 isClickRecording = false;
                 chatMicBtn.classList.remove('recording');
-                const chatMessageFieldLocal = getById('chatMessageField');
-                if (chatMessageFieldLocal) { 
-                    chatMessageFieldLocal.placeholder = "Сообщение..."; 
-                    chatMessageFieldLocal.disabled = false; 
+                const chatField = getById('chatMessageField');
+                if (chatField) { 
+                    chatField.placeholder = "Сообщение..."; 
+                    chatField.disabled = false; 
                 }
             }
         });
     }
 }
 
-// Применение языков интерфейса
+// ==========================================================================
+// ЛОКАЛИЗАЦИЯ И ИНТЕРФЕЙСНЫЙ МЕНЕДЖМЕНТ
+// ==========================================================================
 function applyLanguage(lang) {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
@@ -817,9 +910,7 @@ function applyLanguage(lang) {
     });
 }
 
-// Перерисовка контактов в слоях
 function renderLocalChatsAndContacts() {
-    // Рендерим контакты в меню нового чата
     const tgContactsScrollList = getById('tgContactsScrollList');
     if (tgContactsScrollList) {
         tgContactsScrollList.innerHTML = '';
@@ -837,12 +928,10 @@ function renderLocalChatsAndContacts() {
         }
     }
 
-    // Рендерим динамические чаты (личные и группы)
     const dynamicChatsList = getById('dynamicChatsList');
     if (dynamicChatsList) {
         dynamicChatsList.innerHTML = '';
         
-        // Личные контакты
         if (localDatabase.contacts) {
             localDatabase.contacts.forEach(c => {
                 const lastMsg = getLatestMessageText(c.id);
@@ -855,7 +944,6 @@ function renderLocalChatsAndContacts() {
             });
         }
 
-        // Группы
         if (localDatabase.groups) {
             localDatabase.groups.forEach(g => {
                 const lastMsg = getLatestMessageText(g.id);
@@ -869,7 +957,7 @@ function renderLocalChatsAndContacts() {
         
         if ((!localDatabase.contacts || localDatabase.contacts.length === 0) && 
             (!localDatabase.groups || localDatabase.groups.length === 0)) {
-            dynamicChatsList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Нет чатов</div>';
+            dynamicChatsList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size:14px;">Нет активных диалогов</div>';
         }
     }
 }
@@ -903,7 +991,6 @@ function renderMessagesForActiveChat() {
     if (!chatMessagesArea) return;
     chatMessagesArea.innerHTML = '';
     
-    // Приветственное сообщение для поддержки
     if (activeChatId === "support") {
         const welcomeMsg = document.createElement('div');
         welcomeMsg.className = 'msg-bubble-wrapper item-receiver';
@@ -917,7 +1004,6 @@ function renderMessagesForActiveChat() {
             appendChatMessage(m.text || '', m.senderId === (myProfileData ? myProfileData.id : 'me') ? 'sender' : 'receiver', m.specialHtml);
         });
     }
-    
     chatMessagesArea.scrollTop = chatMessagesArea.scrollHeight;
 }
 
@@ -940,10 +1026,10 @@ function appendChatMessage(text, type = 'sender', specialLayoutHtml = null) {
 }
 
 function connectRealtimeMessages() {
-    if (!supabase) return;
+    if (!supabaseClient) return;
     try {
-        supabase.channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', pattern: 'messages' }, payload => {
+        supabaseClient.channel('public:messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                 const newMsg = payload.new;
                 if (myProfileData && (newMsg.receiver_id === myProfileData.id || newMsg.chat_id === activeChatId)) {
                     const incoming = { 
@@ -955,7 +1041,7 @@ function connectRealtimeMessages() {
                     };
                     if (!localDatabase.messages) localDatabase.messages = [];
                     localDatabase.messages.push(incoming);
-                    localStorage.setItem('sabitov_local_db', JSON.stringify(localDatabase));
+                    safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
                     if (activeChatId === incoming.chatId) {
                         appendChatMessage(incoming.text || '', incoming.senderId === myProfileData.id ? 'sender' : 'receiver', incoming.specialHtml);
                     }
@@ -965,7 +1051,7 @@ function connectRealtimeMessages() {
     } catch(e) { console.error("Realtime ошибка:", e); }
 }
 
-// Воспроизведение аудио-волн (делегирование событий)
+// Управление воспроизведением голосовых сообщений
 document.addEventListener('click', (e) => {
     const playBtn = e.target.closest('.voice-play-btn');
     if (!playBtn) return;

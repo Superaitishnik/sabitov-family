@@ -30,7 +30,6 @@
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    /* Плавная топовая глобальная анимация смены тем */
     transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
                 color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
                 border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
@@ -77,10 +76,25 @@ body {
 .top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; max-width: 1000px; }
 .lang-btn, .theme-btn { background: var(--bg-secondary); border: none; padding: 10px 16px; border-radius: 20px; color: #007aff; font-weight: 600; cursor: pointer; }
 
-/* Онбординг структуры */
-.slider-window { width: 100%; max-width: 600px; overflow: hidden; }
-.slides-wrapper { display: flex; width: 500%; transition: transform 0.6s cubic-bezier(0.2, 1, 0.2, 1); }
-.slide { width: 20%; display: flex; justify-content: center; align-items: center; }
+/* Онбординг структуры - ИСПРАВЛЕНА КАРУСЕЛЬ */
+.slider-window { 
+    width: 100%; 
+    max-width: 600px; 
+    overflow: hidden;
+    position: relative;
+}
+.slides-wrapper { 
+    display: flex; 
+    width: 100%;
+    transition: transform 0.6s cubic-bezier(0.2, 1, 0.2, 1); 
+}
+.slide { 
+    min-width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
 .main-content { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 20px; width: 100%; }
 
 .icon-circle { width: 120px; height: 120px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 32px; }
@@ -189,6 +203,51 @@ body {
 .chat-last-msg { font-size: 15px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 .unread-badge { background: #007aff; color: #ffffff; font-size: 13px; font-weight: 600; min-width: 20px; height: 20px; border-radius: 10px; display: flex; justify-content: center; align-items: center; padding: 0 6px; }
 
+/* ИСПРАВЛЕННЫЕ ИКОНКИ ДЛЯ ТАБ-БАРА */
+.custom-chat-icon {
+    width: 24px;
+    height: 20px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+}
+.msg-bubble {
+    width: 8px;
+    height: 12px;
+    background: currentColor;
+    border-radius: 8px 8px 8px 4px;
+    opacity: 0.6;
+}
+.main-bubble {
+    width: 14px;
+    height: 16px;
+    opacity: 1;
+}
+.custom-profile-icon {
+    width: 22px;
+    height: 22px;
+    position: relative;
+}
+.custom-profile-icon .user-head {
+    width: 12px;
+    height: 12px;
+    background: currentColor;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 5px;
+}
+.custom-profile-icon .user-body {
+    width: 22px;
+    height: 12px;
+    background: currentColor;
+    border-radius: 12px 12px 4px 4px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
 /* Анимированный таббар */
 .tab-bar-wrapper { position: absolute; bottom: -20px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; z-index: 900; padding: 10px 0; }
 .bottom-tab-bar-capsule { background: var(--bg-primary); border: 1px solid var(--input-border); border-radius: 35px; padding: 6px 10px; display: flex; gap: 8px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06); width: 85%; max-width: 320px; justify-content: space-between; }
@@ -221,9 +280,7 @@ body {
 .item-receiver .chat-msg-text { background: var(--receiver-bubble); color: var(--receiver-text); border-radius: 18px 18px 18px 4px; }
 .item-sender .chat-msg-text { background: linear-gradient(135deg, #0084ff 0%, #0066ff 100%); color: #ffffff; border-radius: 18px 18px 4px 18px; box-shadow: 0 2px 8px rgba(0,102,255,0.2); }
 
-/* ==========================================================================
-   ПРЕМИАЛЬНОЕ СОВРЕМЕННОЕ ПОЛЕ ВВОДА (СТЕКЛО, НЕОН И БЛЮР)
-   ========================================================================== */
+/* ПРЕМИАЛЬНОЕ ПОЛЕ ВВОДА */
 .chat-input-footer {
     display: flex;
     align-items: center;
@@ -244,7 +301,6 @@ body {
     display: flex;
     align-items: center;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    /* Анимация мягкого свечения бордера */
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -262,9 +318,7 @@ body {
 .chat-add-btn { width: 34px; height: 34px; background: #007aff; border: none; color: white; font-size: 22px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
 .chat-mic-btn { background: none; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; padding: 4px; }
 
-/* ==========================================================================
-   ФУТУРИСТИЧНЫЕ ПРЕМИУМ ГОЛОСОВЫЕ СООБЩЕНИЯ (TELEGRAM-STYLE)
-   ========================================================================== */
+/* ПРЕМИУМ ГОЛОСОВЫЕ СООБЩЕНИЯ */
 .premium-voice-card {
     display: flex;
     align-items: center;
@@ -290,7 +344,6 @@ body {
     background: #007aff; color: #ffffff;
 }
 
-/* Фейковые аудиоволны */
 .voice-waves-timeline {
     display: flex; align-items: center; gap: 3px; flex-grow: 1; height: 24px;
 }
@@ -301,13 +354,12 @@ body {
 .wave-bar.active { background: #ffffff; }
 .item-receiver .wave-bar.active { background: #007aff; }
 
-/* Анимация волн при воспроизведении */
 .premium-voice-card.playing .wave-bar {
     animation: waveDance 0.6s ease-in-out infinite alternate;
 }
 @keyframes waveDance { from { height: 6px; } to { height: 22px; } }
 
-/* Дополнительные слои интерфейса Telegram Menu */
+/* Дополнительные слои интерфейса */
 .tg-menu-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 940; display: none; flex-direction: column; }
 .tg-menu-options { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
 .tg-option-btn { background: transparent; border: none; width: 100%; text-align: left; padding: 14px; font-size: 16px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 14px; cursor: pointer; border-radius: 12px; }
@@ -329,7 +381,6 @@ body {
 .modal-checkbox-list { max-height: 140px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 5px; }
 .modal-checkbox-item { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text-main); }
 
-/* Плюсик popup */
 .attachment-popup-menu { position: absolute; bottom: 80px; left: 16px; background: var(--bg-primary); border: 1px solid var(--input-border); border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; flex-direction: column; overflow: hidden; z-index: 1000; }
 .attach-option { background: transparent; border: none; padding: 14px 20px; font-size: 15px; font-weight: 600; color: var(--text-main); text-align: left; cursor: pointer; width: 160px; }
 .attach-option:hover { background: var(--bg-secondary); }
