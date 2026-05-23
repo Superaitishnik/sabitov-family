@@ -2,150 +2,323 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Sabitov Family — Secure Messenger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabitov Messenger</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="bg-gradient"></div>
-    <div class="bg-orb-1"></div>
-    <div class="bg-orb-2"></div>
 
-    <!-- Онбординг: экран 1 -->
-    <div class="onboarding-screen" id="screen1">
-        <div class="onboarding-icon">✨</div>
-        <h1 class="onboarding-title">Добро пожаловать в<br>Sabitov Family</h1>
-        <p class="onboarding-subtitle">Мессенджер нового поколения<br>с максимальной конфиденциальностью</p>
-        <button class="onboarding-btn" id="next1">Далее →</button>
-        <div class="onboarding-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    </div>
+    <div class="toast-notification" id="toast">Успешно скопировано!</div>
 
-    <!-- Онбординг: экран 2 -->
-    <div class="onboarding-screen" id="screen2" style="display:none">
-        <div class="onboarding-icon">🔒</div>
-        <h1 class="onboarding-title">Шифрование<br>от начала до конца</h1>
-        <p class="onboarding-subtitle">Ваши сообщения защищены сквозным шифрованием. Никто, кроме вас и получателя, не сможет их прочитать.</p>
-        <button class="onboarding-btn" id="next2">Далее →</button>
-        <div class="onboarding-dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    </div>
+    <div class="app-container" id="appContainer">
+        <header class="top-bar" id="topBar">
+            <button class="lang-btn">🌐 EN</button>
+            <button class="theme-btn">🌙</button>
+        </header>
 
-    <!-- Онбординг: экран 3 -->
-    <div class="onboarding-screen" id="screen3" style="display:none">
-        <div class="onboarding-icon">👻</div>
-        <h1 class="onboarding-title">Ghost Mode</h1>
-        <p class="onboarding-subtitle">Стань невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете.</p>
-        <button class="onboarding-btn" id="next3">Далее →</button>
-        <div class="onboarding-dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
-    </div>
-
-    <!-- Онбординг: экран 4 -->
-    <div class="onboarding-screen" id="screen4" style="display:none">
-        <div class="onboarding-icon">🆔</div>
-        <h1 class="onboarding-title">SabitovID</h1>
-        <p class="onboarding-subtitle">Никаких телефонов и почты. Только ваш уникальный SabitovID и PIN-код для входа.</p>
-        <button class="onboarding-btn" id="next4">Начать →</button>
-        <div class="onboarding-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
-    </div>
-
-    <!-- Экран выбора: Вход / Регистрация (как в Telegram) -->
-    <div class="onboarding-screen" id="authChoiceScreen" style="display:none">
-        <div class="auth-logo">✨</div>
-        <h1 class="auth-title">Sabitov Family</h1>
-        <button class="auth-btn" id="registerChoiceBtn">Создать аккаунт</button>
-        <button class="auth-btn secondary" id="loginChoiceBtn">Уже есть аккаунт →</button>
-    </div>
-
-    <!-- Регистрация: экран username -->
-    <div class="onboarding-screen" id="regUsernameScreen" style="display:none">
-        <div class="avatar-circle">@</div>
-        <h2 class="reg-title">Создайте имя пользователя</h2>
-        <p class="reg-subtitle">Это ваш уникальный идентификатор в Sabitov. Без номера телефона, без почты</p>
-        <div class="input-container">
-            <input type="text" id="regUsernameInput" class="reg-input" placeholder="username" autocomplete="off">
-            <div class="input-error-text" id="usernameError"></div>
-        </div>
-        <button class="onboarding-btn" id="regUsernameNext">Далее →</button>
-    </div>
-
-    <!-- Регистрация: экран имя -->
-    <div class="onboarding-screen" id="regNameScreen" style="display:none">
-        <div class="avatar-circle">👤</div>
-        <h2 class="reg-title">Как вас зовут?</h2>
-        <p class="reg-subtitle">Это имя увидят другие пользователи</p>
-        <div class="input-container">
-            <input type="text" id="regNameInput" class="reg-input" placeholder="Имя" autocomplete="off">
-            <div class="input-error-text" id="nameError"></div>
-        </div>
-        <button class="onboarding-btn" id="regNameNext">Далее →</button>
-    </div>
-
-    <!-- Регистрация: показ SabitovID -->
-    <div class="onboarding-screen" id="regShowIdScreen" style="display:none">
-        <div class="avatar-circle tech-icon" id="techIcon">🔐</div>
-        <h2 class="reg-title">Ваш SabitovID</h2>
-        <div class="sabitov-id-box" id="sabitovIdBox">
-            <span id="generatedId">SBT7XK9M</span>
-            <button class="copy-id-btn" id="copyIdBtn">📋</button>
-        </div>
-        <p class="id-warning">Запомните ваш SabitovID. Он понадобится для входа в аккаунт.</p>
-        <button class="onboarding-btn" id="idNextBtn">Продолжить →</button>
-    </div>
-
-    <!-- Регистрация: создание PIN-кода -->
-    <div class="onboarding-screen" id="regPinScreen" style="display:none">
-        <div class="avatar-circle">🔒</div>
-        <h2 class="reg-title">Подтвердите PIN</h2>
-        <p class="reg-subtitle">4-значный код для защиты аккаунта</p>
-        <div class="pin-container">
-            <input type="password" id="regPinInput" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
-        </div>
-        <button class="onboarding-btn" id="regPinNext">Далее →</button>
-    </div>
-
-    <!-- Регистрация: подтверждение PIN -->
-    <div class="onboarding-screen" id="regConfirmPinScreen" style="display:none">
-        <div class="avatar-circle">🔒</div>
-        <h2 class="reg-title">Подтвердите PIN</h2>
-        <p class="reg-subtitle">Повторите 4-значный код</p>
-        <div class="pin-container">
-            <input type="password" id="regConfirmPinInput" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
-        </div>
-        <div class="input-error-text" id="pinError"></div>
-        <button class="onboarding-btn" id="regConfirmPinBtn">Завершить →</button>
-    </div>
-
-    <!-- Экран входа -->
-    <div class="onboarding-screen" id="loginScreen" style="display:none">
-        <div class="auth-logo">✨</div>
-        <h2 class="reg-title">Вход в аккаунт</h2>
-        <div class="input-container">
-            <input type="text" id="loginIdInput" class="reg-input" placeholder="SabitovID" autocomplete="off">
-        </div>
-        <div class="input-container">
-            <input type="password" id="loginPinInput" class="reg-input" placeholder="PIN-код" autocomplete="off" maxlength="4">
-        </div>
-        <button class="onboarding-btn" id="loginSubmitBtn">Войти →</button>
-        <button class="back-to-auth" id="backToAuthBtn">← Назад</button>
-    </div>
-
-    <!-- Главный экран мессенджера -->
-    <div class="messenger-screen" id="messengerScreen" style="display:none">
-        <div class="messenger-header">
-            <div class="messenger-avatar" id="msgAvatar">?</div>
-            <div class="messenger-info">
-                <div class="messenger-name" id="msgName">Загрузка...</div>
-                <div class="messenger-status">Невидим</div>
+        <div class="slider-window" id="sliderWindow">
+            <div class="slides-wrapper" id="slidesWrapper">
+                <section class="slide">
+                    <div class="main-content">
+                        <div class="logo">S</div>
+                        <h1 class="title">Добро пожаловать<br>в Sabitov</h1>
+                        <p class="subtitle">Мессенджер нового поколения<br>с максимальной конфиденциальностью</p>
+                    </div>
+                </section>
+                <section class="slide">
+                    <div class="main-content">
+                        <div class="icon-circle green-bg">
+                            <div class="shield-icon">
+                                <div class="lock-loop"></div>
+                                <div class="lock-body"></div>
+                            </div>
+                        </div>
+                        <h1 class="title">Шифрование<br>от начала до конца</h1>
+                        <p class="subtitle">Все сообщения защищены сквозным шифрованием.<br>Никто не может прочитать ваши данные</p>
+                    </div>
+                </section>
+                <section class="slide">
+                    <div class="main-content">
+                        <div class="icon-circle purple-bg">
+                            <div class="ghost-icon">
+                                <div class="eye-shape"><div class="eye-pupil"></div></div>
+                                <div class="eye-slash"></div>
+                            </div>
+                        </div>
+                        <h1 class="title">Ghost Mode</h1>
+                        <p class="subtitle">Станьте невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете</p>
+                    </div>
+                </section>
+                <section class="slide">
+                    <div class="main-content">
+                        <div class="icon-circle orange-bg">
+                            <div class="fenix-icon-new">
+                                <div class="circle-part"></div>
+                                <div class="spark"></div>
+                            </div>
+                        </div>
+                        <h1 class="title">Протокол Fenix</h1>
+                        <p class="subtitle">Одно нажатие — и все ваши данные будут безвозвратно удалены с наших серверов</p>
+                    </div>
+                </section>
+                <section class="slide">
+                    <div class="main-content">
+                        <div class="tech-loader-container">
+                            <div class="tech-circle"></div>
+                            <div class="tech-core"></div>
+                            <div class="tech-orbit"></div>
+                        </div>
+                        <h1 class="title">SabitovID</h1>
+                        <p class="subtitle">Никаких телефонов и почты.<br>Только ваш уникальный SabitovID<br>и PIN-код для входа</p>
+                    </div>
+                </section>
             </div>
-            <button class="logout-btn" id="logoutBtnMain">🚪</button>
         </div>
-        <div class="chat-placeholder">
-            <div class="chat-icon">💬</div>
-            <div class="chat-text">Выберите чат, чтобы начать общение</div>
-            <div class="chat-subtext">Ваш SabitovID: <span id="displaySabitovId"></span></div>
+
+        <footer class="bottom-area" id="bottomArea">
+            <div class="pagination">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+            <div class="buttons-group">
+                <button class="next-btn" id="nextBtn">Далее</button>
+                <button class="skip-link" id="skipBtn">Пропустить</button>
+            </div>
+        </footer>
+
+        <div class="registration-screen" id="regScreen">
+            <button class="back-arrow" id="backToSliderBtn">‹</button>
+            <div class="main-content">
+                <div class="icon-circle blue-bg-light">
+                    <div class="at-sign">@</div>
+                </div>
+                <h1 class="title">Создайте имя пользователя</h1>
+                <p class="subtitle">Это ваш уникальный идентификатор в Sabitov.<br>Без номера телефона, без почты.</p>
+                <div class="input-container">
+                    <input type="text" placeholder="Имя пользователя" id="usernameInput" autocomplete="off">
+                </div>
+            </div>
+            <footer class="bottom-area">
+                <button class="next-btn disabled" id="regNextBtn" disabled>Далее</button>
+            </footer>
+        </div>
+
+        <div class="registration-screen" id="nameScreen">
+            <button class="back-arrow" id="backToRegBtn">‹</button>
+            <div class="main-content">
+                <div class="icon-circle purple-bg-light">
+                    <div class="user-avatar-icon">
+                        <div class="avatar-head"></div>
+                        <div class="avatar-body"></div>
+                    </div>
+                </div>
+                <h1 class="title">Как вас зовут?</h1>
+                <p class="subtitle">Это имя увидят другие пользователи</p>
+                <div class="input-container">
+                    <input type="text" placeholder="Отображаемое имя" id="nameInput" autocomplete="off">
+                </div>
+            </div>
+            <footer class="bottom-area">
+                <button class="next-btn disabled" id="nameNextBtn" disabled>Далее</button>
+            </footer>
+        </div>
+
+        <div class="registration-screen" id="idScreen">
+            <button class="back-arrow" id="backToNameBtn">‹</button>
+            <div class="main-content">
+                <div class="tech-loader-container">
+                    <div class="tech-circle"></div>
+                    <div class="tech-core"></div>
+                    <div class="tech-orbit"></div>
+                </div>
+                <h1 class="title">Ваш SabitovID</h1>
+                <div class="generated-id-box" id="generatedIdBox" title="Нажмите, чтобы скопировать">
+                    <span id="sabitovIdText">SID-00000000</span>
+                </div>
+                <p class="subtitle">Запомните ваш SabitovID.<br>Он понадобится для входа в аккаунт.</p>
+            </div>
+            <footer class="bottom-area">
+                <button class="next-btn" id="idNextBtn">Продолжить</button>
+            </footer>
+        </div>
+
+        <div class="registration-screen" id="createPinScreen">
+            <button class="back-arrow" id="backToIdBtn">‹</button>
+            <div class="main-content">
+                <div class="icon-circle purple-bg-light">
+                    <div class="pin-lock-icon"></div>
+                </div>
+                <h1 class="title">Создайте PIN-код</h1>
+                <p class="subtitle">4-значный код для защиты аккаунта</p>
+                <div class="pin-dots-container" id="createPinDots">
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                </div>
+                <div class="keyboard-grid" id="createPinKeyboard">
+                    <button class="key-btn" data-val="1">1</button>
+                    <button class="key-btn" data-val="2">2</button>
+                    <button class="key-btn" data-val="3">3</button>
+                    <button class="key-btn" data-val="4">4</button>
+                    <button class="key-btn" data-val="5">5</button>
+                    <button class="key-btn" data-val="6">6</button>
+                    <button class="key-btn" data-val="7">7</button>
+                    <button class="key-btn" data-val="8">8</button>
+                    <button class="key-btn" data-val="9">9</button>
+                    <div class="key-empty"></div>
+                    <button class="key-btn" data-val="0">0</button>
+                    <button class="key-btn backspace-btn" data-val="back">⌫</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="registration-screen" id="confirmPinScreen">
+            <button class="back-arrow" id="backToCreatePinBtn">‹</button>
+            <div class="main-content">
+                <div class="icon-circle purple-bg-light">
+                    <div class="pin-lock-icon"></div>
+                </div>
+                <h1 class="title">Подтвердите PIN</h1>
+                <p class="subtitle">4-значный код для защиты аккаунта</p>
+                <div class="pin-dots-container" id="confirmPinDots">
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                    <span class="pin-dot"></span>
+                </div>
+                <div class="keyboard-grid" id="confirmPinKeyboard">
+                    <button class="key-btn" data-val="1">1</button>
+                    <button class="key-btn" data-val="2">2</button>
+                    <button class="key-btn" data-val="3">3</button>
+                    <button class="key-btn" data-val="4">4</button>
+                    <button class="key-btn" data-val="5">5</button>
+                    <button class="key-btn" data-val="6">6</button>
+                    <button class="key-btn" data-val="7">7</button>
+                    <button class="key-btn" data-val="8">8</button>
+                    <button class="key-btn" data-val="9">9</button>
+                    <div class="key-empty"></div>
+                    <button class="key-btn" data-val="0">0</button>
+                    <button class="key-btn backspace-btn" data-val="back">⌫</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-app-screen" id="mainAppScreen">
+            
+            <div class="chat-room-layer" id="chatRoomLayer">
+                <header class="chat-room-header">
+                    <button class="chat-back-btn" id="closeChatBtn">‹</button>
+                    <div class="chat-room-title-block">
+                        <span class="chat-room-name">Sabitov Support</span>
+                    </div>
+                    <div class="chat-room-avatar">🎧</div>
+                </header>
+                
+                <div class="crypto-notice-bar">
+                    🔒 Сообщения защищены сквозным шифрованием.
+                </div>
+
+                <div class="chat-messages-area" id="chatMessagesArea">
+                    <div class="msg-bubble-wrapper item-receiver">
+                        <div class="chat-msg-text">Здравствуйте! Добро пожаловать в Sabitov. Чем можем помочь?</div>
+                    </div>
+                </div>
+
+                <div class="attachment-popup-menu" id="attachMenu">
+                    <button class="attach-option" id="attachMediaBtn">🖼️ Photo/Video</button>
+                    <button class="attach-option" id="attachFileBtn">📁 File</button>
+                </div>
+
+                <input type="file" id="mediaInputHidden" accept="image/*,video/*" style="display: none;">
+                <input type="file" id="fileInputHidden" accept="*" style="display: none;">
+
+                <footer class="chat-input-footer">
+                    <button class="chat-add-btn" id="chatPlusBtn">+</button>
+                    <div class="chat-input-wrapper">
+                        <input type="text" placeholder="Сообщение..." id="chatMessageField" autocomplete="off">
+                    </div>
+                    <button class="chat-mic-btn" id="chatMicBtn">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mic-icon-svg"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                        <span class="stop-record-text" style="display: none;">STOP</span>
+                    </button>
+                </footer>
+            </div>
+
+            <div id="mainAppContentArea" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+                <header class="app-header">
+                    <h1 class="app-main-title" id="appSectionTitle">Чаты</h1>
+                    <button class="write-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                </header>
+
+                <div class="app-scroll-content" id="appScrollContent">
+                    <div class="tab-content-block" id="tab-chats">
+                        <div class="search-bar-container">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" placeholder="Поиск по юзернейму" class="search-input">
+                        </div>
+                        <div class="support-label">
+                            <span class="headset-icon">🎧</span> Обращения в поддержку
+                        </div>
+                        <div class="chat-item" id="openSupportChatBlock">
+                            <div class="chat-avatar-blue">
+                                <span class="avatar-headset">🎧</span>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-name-row">
+                                    <span class="chat-name">Sabitov Support <span class="verified-badge">✓</span></span>
+                                   </div>
+                                <p class="chat-last-msg" id="chatListSubtext">Здравствуйте! Добро пожаловать...</p>
+                            </div>
+                            <div class="chat-meta">
+                                <span class="unread-badge" id="listUnreadCounter">1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content-block" id="tab-profile" style="display: none;">
+                        <div class="profile-card-stub">
+                            <div class="profile-avatar-stub">S</div>
+                            <h2 class="profile-name-stub" id="profileUserTitle">Пользователь</h2>
+                            <p class="profile-id-stub" id="profileIdTitle">SID-00000000</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-bar-wrapper">
+                    <nav class="bottom-tab-bar-capsule">
+                        <button class="tab-item-btn active" data-tab="chats">
+                            <div class="tab-icon-wrapper">
+                                <div class="custom-chat-icon">
+                                    <div class="msg-bubble main-bubble"></div>
+                                    <div class="msg-bubble sub-bubble"></div>
+                                </div>
+                                <span class="tab-badge-red" id="tabUnreadCounter">1</span>
+                            </div>
+                            <span class="tab-text">Чаты</span>
+                        </button>
+                        
+                        <button class="tab-item-btn" data-tab="profile">
+                            <div class="tab-icon-wrapper">
+                                <div class="custom-profile-icon">
+                                    <div class="user-head"></div>
+                                    <div class="user-body"></div>
+                                </div>
+                            </div>
+                            <span class="tab-text">Профиль</span>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div class="toast-message" id="toastMsg">Скопировано!</div>
     <script src="script.js"></script>
 </body>
 </html>
