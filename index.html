@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sabitov Family — Secure Messenger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="bg-orb-1"></div>
+    <div class="bg-orb-2"></div>
+
+    <!-- Онбординг: экран 1 -->
+    <div class="onboarding-screen" id="screen1">
+        <div class="onboarding-icon">✨</div>
+        <h1 class="onboarding-title">Добро пожаловать в<br>Sabitov Family</h1>
+        <p class="onboarding-subtitle">Мессенджер нового поколения<br>с максимальной конфиденциальностью</p>
+        <button class="onboarding-btn" id="next1">Далее →</button>
+        <div class="onboarding-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    </div>
+
+    <!-- Онбординг: экран 2 -->
+    <div class="onboarding-screen" id="screen2" style="display:none">
+        <div class="onboarding-icon">🔒</div>
+        <h1 class="onboarding-title">Шифрование<br>от начала до конца</h1>
+        <p class="onboarding-subtitle">Ваши сообщения защищены сквозным шифрованием. Никто, кроме вас и получателя, не сможет их прочитать.</p>
+        <button class="onboarding-btn" id="next2">Далее →</button>
+        <div class="onboarding-dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    </div>
+
+    <!-- Онбординг: экран 3 -->
+    <div class="onboarding-screen" id="screen3" style="display:none">
+        <div class="onboarding-icon">👻</div>
+        <h1 class="onboarding-title">Ghost Mode</h1>
+        <p class="onboarding-subtitle">Стань невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете.</p>
+        <button class="onboarding-btn" id="next3">Далее →</button>
+        <div class="onboarding-dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
+    </div>
+
+    <!-- Онбординг: экран 4 -->
+    <div class="onboarding-screen" id="screen4" style="display:none">
+        <div class="onboarding-icon">🆔</div>
+        <h1 class="onboarding-title">SabitovID</h1>
+        <p class="onboarding-subtitle">Никаких телефонов и почты. Только ваш уникальный SabitovID и PIN-код для входа.</p>
+        <button class="onboarding-btn" id="next4">Начать →</button>
+        <div class="onboarding-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
+    </div>
+
+    <!-- Экран выбора: Вход / Регистрация (как в Telegram) -->
+    <div class="onboarding-screen" id="authChoiceScreen" style="display:none">
+        <div class="auth-logo">✨</div>
+        <h1 class="auth-title">Sabitov Family</h1>
+        <button class="auth-btn" id="registerChoiceBtn">Создать аккаунт</button>
+        <button class="auth-btn secondary" id="loginChoiceBtn">Уже есть аккаунт →</button>
+    </div>
+
+    <!-- Регистрация: экран username -->
+    <div class="onboarding-screen" id="regUsernameScreen" style="display:none">
+        <div class="avatar-circle">@</div>
+        <h2 class="reg-title">Создайте имя пользователя</h2>
+        <p class="reg-subtitle">Это ваш уникальный идентификатор в Sabitov. Без номера телефона, без почты</p>
+        <div class="input-container">
+            <input type="text" id="regUsernameInput" class="reg-input" placeholder="username" autocomplete="off">
+            <div class="input-error-text" id="usernameError"></div>
+        </div>
+        <button class="onboarding-btn" id="regUsernameNext">Далее →</button>
+    </div>
+
+    <!-- Регистрация: экран имя -->
+    <div class="onboarding-screen" id="regNameScreen" style="display:none">
+        <div class="avatar-circle">👤</div>
+        <h2 class="reg-title">Как вас зовут?</h2>
+        <p class="reg-subtitle">Это имя увидят другие пользователи</p>
+        <div class="input-container">
+            <input type="text" id="regNameInput" class="reg-input" placeholder="Имя" autocomplete="off">
+            <div class="input-error-text" id="nameError"></div>
+        </div>
+        <button class="onboarding-btn" id="regNameNext">Далее →</button>
+    </div>
+
+    <!-- Регистрация: показ SabitovID -->
+    <div class="onboarding-screen" id="regShowIdScreen" style="display:none">
+        <div class="avatar-circle tech-icon" id="techIcon">🔐</div>
+        <h2 class="reg-title">Ваш SabitovID</h2>
+        <div class="sabitov-id-box" id="sabitovIdBox">
+            <span id="generatedId">SBT7XK9M</span>
+            <button class="copy-id-btn" id="copyIdBtn">📋</button>
+        </div>
+        <p class="id-warning">Запомните ваш SabitovID. Он понадобится для входа в аккаунт.</p>
+        <button class="onboarding-btn" id="idNextBtn">Продолжить →</button>
+    </div>
+
+    <!-- Регистрация: создание PIN-кода -->
+    <div class="onboarding-screen" id="regPinScreen" style="display:none">
+        <div class="avatar-circle">🔒</div>
+        <h2 class="reg-title">Подтвердите PIN</h2>
+        <p class="reg-subtitle">4-значный код для защиты аккаунта</p>
+        <div class="pin-container">
+            <input type="password" id="regPinInput" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
+        </div>
+        <button class="onboarding-btn" id="regPinNext">Далее →</button>
+    </div>
+
+    <!-- Регистрация: подтверждение PIN -->
+    <div class="onboarding-screen" id="regConfirmPinScreen" style="display:none">
+        <div class="avatar-circle">🔒</div>
+        <h2 class="reg-title">Подтвердите PIN</h2>
+        <p class="reg-subtitle">Повторите 4-значный код</p>
+        <div class="pin-container">
+            <input type="password" id="regConfirmPinInput" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
+        </div>
+        <div class="input-error-text" id="pinError"></div>
+        <button class="onboarding-btn" id="regConfirmPinBtn">Завершить →</button>
+    </div>
+
+    <!-- Экран входа -->
+    <div class="onboarding-screen" id="loginScreen" style="display:none">
+        <div class="auth-logo">✨</div>
+        <h2 class="reg-title">Вход в аккаунт</h2>
+        <div class="input-container">
+            <input type="text" id="loginIdInput" class="reg-input" placeholder="SabitovID" autocomplete="off">
+        </div>
+        <div class="input-container">
+            <input type="password" id="loginPinInput" class="reg-input" placeholder="PIN-код" autocomplete="off" maxlength="4">
+        </div>
+        <button class="onboarding-btn" id="loginSubmitBtn">Войти →</button>
+        <button class="back-to-auth" id="backToAuthBtn">← Назад</button>
+    </div>
+
+    <!-- Главный экран мессенджера -->
+    <div class="messenger-screen" id="messengerScreen" style="display:none">
+        <div class="messenger-header">
+            <div class="messenger-avatar" id="msgAvatar">?</div>
+            <div class="messenger-info">
+                <div class="messenger-name" id="msgName">Загрузка...</div>
+                <div class="messenger-status">Невидим</div>
+            </div>
+            <button class="logout-btn" id="logoutBtnMain">🚪</button>
+        </div>
+        <div class="chat-placeholder">
+            <div class="chat-icon">💬</div>
+            <div class="chat-text">Выберите чат, чтобы начать общение</div>
+            <div class="chat-subtext">Ваш SabitovID: <span id="displaySabitovId"></span></div>
+        </div>
+    </div>
+
+    <div class="toast-message" id="toastMsg">Скопировано!</div>
+    <script src="script.js"></script>
+</body>
+</html>
