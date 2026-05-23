@@ -327,123 +327,338 @@ async function checkUserExists(sabitovId) {
     }
     
     try {
-        // Сначала проверим, существует ли таблица users
-        const { data: tableCheck, error: tableError } = await supabaseClient
-            .from('users')
-            .select('id')
-            .limit(1);
-        
-        // Если таблица не существует, создадим её через SQL (только для демо)
-        if (tableError && tableError.code === '42P01') {
-            console.log("Таблица users не найдена, работаем в локальном режиме");
-            return true; // Разрешаем добавление, так как таблицы нет
-        }
-        
-        // Проверяем существование пользователя
         const { data, error } = await supabaseClient
             .from('users')
             .select('id')
             .eq('id', sabitovId)
-            .maybeSingle();
+            .single();
         
         if (error) {
+            if (error.code === 'PGRST116') {
+                showToast(`Пользователь с ID ${sabitovId} не найден в системе`);
+                return false;
+            }
             console.error("Ошибка при проверке пользователя:", error);
-            showToast(`Ошибка проверки: ${error.message}`);
             return false;
         }
         
         if (data && data.id) {
             return true;
         } else {
-            showToast(`Пользователь с ID ${sabitovId} не найден в системе`);
+            showToast(`Пользователь с ID ${sabitovId} не существует`);
             return false;
         }
     } catch(e) {
         console.error("Исключение при проверке пользователя:", e);
-        // В случае ошибки всё равно разрешаем добавление (локальный режим)
-        return true;
+        showToast("Ошибка при проверке контакта");
+        return false;
     }
 }
 
-// ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ДЛЯ СОХРАНЕНИЯ КОНТАКТА
-const saveContactModalBtn = getById('saveContactModalBtn');
-if (saveContactModalBtn) {
-    saveContactModalBtn.addEventListener('click', async () => {
-        const modalContactId = getById('modalContactId');
-        const modalContactName = getById('modalContactName');
-        
-        const id = modalContactId ? modalContactId.value.trim() : '';
-        const name = modalContactName ? modalContactName.value.trim() : '';
-        
-        if (!id || !name) {
-            showToast("Заполните все поля");
-            return;
-        }
-        
-        // Проверяем формат SabitovID (должен начинаться с SID-)
-        if (!id.startsWith('SID-')) {
-            showToast("SabitovID должен начинаться с 'SID-'");
-            return;
-        }
-        
-        // Показываем индикатор загрузки
-        const originalText = saveContactModalBtn.textContent;
-        saveContactModalBtn.textContent = "Проверка...";
-        saveContactModalBtn.disabled = true;
-        
-        // Проверяем, существует ли пользователь в Supabase
-        const userExists = await checkUserExists(id);
-        
-        saveContactModalBtn.textContent = originalText;
-        saveContactModalBtn.disabled = false;
-        
-        if (!userExists) {
-            return; // Сообщение об ошибке уже показано в checkUserExists
-        }
+// ==========================================================================
+// ОБРАБОТЧИКИ СОБЫТИЙ
+// ==========================================================================
+function initEventListeners() {
+    console.log("initEventListeners запущен");
+    
+    // Переключатель языков
+    const langBtn = getById('langBtn');
+    const langMenu = getById('langMenu');
+    if (langBtn && langMenu) {
+        langBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = langMenu.style.display === 'flex';
+            langMenu.style.display = isOpen ? 'none' : 'flex';
+        });
+    }
 
-        // Проверяем, не добавлен ли уже этот контакт
-        const alreadyExists = localDatabase.contacts.some(c => c.id === id);
-        if (alreadyExists) {
-            showToast("Этот контакт уже добавлен");
-            return;
-        }
-        
-        // Проверяем, не пытается ли пользователь добавить самого себя
-        if (myProfileData && myProfileData.id === id) {
-            showToast("Нельзя добавить самого себя в контакты");
-            return;
-        }
-
-        const newContact = { id, name, isGroup: false };
-        localDatabase.contacts.push(newContact);
-        safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
-
-        if (supabaseClient && myProfileData) {
-            try { 
-                await supabaseClient.from('contacts').insert([{ 
-                    user_id: myProfileData.id, 
-                    contact_sid: id, 
-                    contact_name: name 
-                }]); 
-                console.log("Контакт сохранен в Supabase");
-            } catch(e){
-                console.error("Ошибка сохранения контакта в Supabase:", e);
-                // Даже если ошибка в Supabase, контакт уже сохранен локально
-            }
-        }
-
-        // Очищаем поля
-        if (modalContactId) modalContactId.value = '';
-        if (modalContactName) modalContactName.value = '';
-        
-        // Закрываем модальное окно
-        const contactModal = getById('contactModal');
-        if (contactModal) contactModal.style.display = 'none';
-        
-        renderLocalChatsAndContacts();
-        showToast(`Контакт ${name} успешно добавлен!`);
+    document.addEventListener('click', () => { 
+        if (langMenu) langMenu.style.display = 'none'; 
     });
-}
+
+    if (langMenu) {
+        langMenu.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetLang = e.target.dataset.lang;
+                if (!targetLang) return;
+                if (langBtn) langBtn.textContent = `🌐 ${targetLang.toUpperCase()}`;
+                applyLanguage(targetLang);
+            });
+        });
+    }
+
+    // Переключатель тем оформления
+    const themeToggleBtn = getById('themeToggleBtn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            if (document.body.classList.contains('light-theme')) {
+                document.body.classList.replace('light-theme', 'dark-theme');
+                themeToggleBtn.textContent = '☀️';
+                safeLocalSet('sabitov_theme', 'dark-theme');
+            } else {
+                document.body.classList.replace('dark-theme', 'light-theme');
+                themeToggleBtn.textContent = '🌙';
+                safeLocalSet('sabitov_theme', 'light-theme');
+            }
+        });
+    }
+
+    const addContactBtn = getById('addContactBtn');
+    if (addContactBtn) {
+        addContactBtn.addEventListener('click', () => {
+            const input = getById('contactIdInput');
+            if (input) addNewContact(input.value.trim());
+        });
+    }
+
+    // Управление кнопками Слайдера
+    const nextBtn = getById('nextBtn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (currentSlide < 4) { 
+                currentSlide++; 
+                updateSlider(); 
+            } else { 
+                showUsernameScreen(); 
+            }
+        });
+    } else {
+        console.error("nextBtn не найден");
+    }
+
+    const skipBtn = getById('skipBtn');
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => { 
+            currentSlide = 4; 
+            updateSlider(); 
+        });
+    }
+
+    // Стрелочки возврата назад на этапах регистрации
+    const backToSlider = getById('backToSliderBtn');
+    if (backToSlider) backToSlider.addEventListener('click', showSliderScreen);
+    const backToReg = getById('backToRegBtn');
+    if (backToReg) backToReg.addEventListener('click', showUsernameScreen);
+    const backToName = getById('backToNameBtn');
+    if (backToName) backToName.addEventListener('click', showNameScreen);
+    const backToId = getById('backToIdBtn');
+    if (backToId) backToId.addEventListener('click', showIdScreen);
+    const backToCreatePin = getById('backToCreatePinBtn');
+    if (backToCreatePin) backToCreatePin.addEventListener('click', showCreatePinScreen);
+
+    // Кнопки "Далее" и "Продолжить" в регистрации
+    const regNext = getById('regNextBtn');
+    if (regNext) regNext.addEventListener('click', showNameScreen);
+    const nameNext = getById('nameNextBtn');
+    if (nameNext) nameNext.addEventListener('click', showIdScreen);
+    const idNext = getById('idNextBtn');
+    if (idNext) idNext.addEventListener('click', showCreatePinScreen);
+
+    // Валидация инпута Username
+    const usernameInput = getById('usernameInput');
+    if (usernameInput) {
+        usernameInput.addEventListener('input', () => {
+            const isReady = usernameInput.value.trim().length > 0;
+            const regNextBtnLocal = getById('regNextBtn');
+            if (regNextBtnLocal) {
+                regNextBtnLocal.classList.toggle('disabled', !isReady);
+                regNextBtnLocal.disabled = !isReady;
+            }
+        });
+    }
+
+    // Валидация инпута Имени
+    const nameInputLocal = getById('nameInput');
+    if (nameInputLocal) {
+        nameInputLocal.addEventListener('input', () => {
+            const isReady = nameInputLocal.value.trim().length > 0;
+            const nameNextBtnLocal = getById('nameNextBtn');
+            if (nameNextBtnLocal) {
+                nameNextBtnLocal.classList.toggle('disabled', !isReady);
+                nameNextBtnLocal.disabled = !isReady;
+            }
+        });
+    }
+
+    // Копирование SabitovID
+    const generatedIdBox = getById('generatedIdBox');
+    if (generatedIdBox) {
+        generatedIdBox.addEventListener('click', () => {
+            const sidText = getById('sabitovIdText');
+            if (sidText) {
+                navigator.clipboard.writeText(sidText.textContent).then(() => {
+                    showToast('Успешно скопировано!');
+                }).catch(() => {
+                    showToast('Не удалось скопировать');
+                });
+            }
+        });
+    }
+
+    // PIN-клавиатуры
+    const createPinKeyboard = getById('createPinKeyboard');
+    if (createPinKeyboard) {
+        createPinKeyboard.addEventListener('click', (e) => {
+            const btn = e.target.closest('.key-btn'); 
+            if (!btn) return;
+            const value = btn.dataset.val;
+            if (value === 'back') { 
+                createdPinString = createdPinString.slice(0, -1); 
+            } else if (createdPinString.length < 4) { 
+                createdPinString += value; 
+            }
+            updatePinDots(getAll('#createPinDots .pin-dot'), createdPinString);
+            if (createdPinString.length === 4) { 
+                setTimeout(showConfirmPinScreen, 200); 
+            }
+        });
+    }
+
+    const confirmPinKeyboard = getById('confirmPinKeyboard');
+    if (confirmPinKeyboard) {
+        confirmPinKeyboard.addEventListener('click', (e) => {
+            const btn = e.target.closest('.key-btn'); 
+            if (!btn) return;
+            const value = btn.dataset.val;
+            if (value === 'back') { 
+                confirmedPinString = confirmedPinString.slice(0, -1); 
+            } else if (confirmedPinString.length < 4) { 
+                confirmedPinString += value; 
+            }
+            updatePinDots(getAll('#confirmPinDots .pin-dot'), confirmedPinString);
+
+            if (confirmedPinString.length === 4) {
+                if (confirmedPinString === createdPinString) {
+                    setTimeout(() => {
+                        const sidText = getById('sabitovIdText');
+                        const nameInp = getById('nameInput');
+                        const userInp = getById('usernameInput');
+                        
+                        myProfileData = {
+                            id: sidText ? sidText.textContent : 'SID-UNKNOWN',
+                            name: nameInp ? nameInp.value.trim() : 'User',
+                            username: userInp ? userInp.value.trim() : 'username'
+                        };
+                        safeLocalSet('sabitov_session_user', JSON.stringify(myProfileData));
+                        
+                        if (supabaseClient) {
+                            supabaseClient.from('users').insert([myProfileData])
+                                .then(() => console.log("Профиль сохранен в Supabase!"))
+                                .catch(err => console.error(err));
+                        }
+
+                        showToast('Регистрация успешно завершена!');
+                        setTimeout(showMainAppScreen, 600);
+                    }, 200);
+                } else {
+                    setTimeout(() => {
+                        showToast('PIN-коды не совпадают! Попробуйте еще раз.');
+                        confirmedPinString = "";
+                        updatePinDots(getAll('#confirmPinDots .pin-dot'), confirmedPinString);
+                    }, 300);
+                }
+            }
+        });
+    }
+
+    // Вкладки нижнего меню
+    const tabButtons = getAll('.tab-item-btn');
+    const tabContents = getAll('.tab-content-block');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.dataset.tab;
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            const appSectionTitle = getById('appSectionTitle');
+            if (appSectionTitle) {
+                appSectionTitle.textContent = (targetTab === 'chats') ? 'Чаты' : 'Профиль';
+            }
+            
+            tabContents.forEach(content => { 
+                content.style.display = (content.id === `tab-${targetTab}`) ? 'block' : 'none'; 
+            });
+        });
+    });
+
+    // Управление слоем "Новое сообщение"
+    const topOpenMenuBtn = getById('topOpenMenuBtn');
+    const newChatMenuLayer = getById('newChatMenuLayer');
+    if (topOpenMenuBtn && newChatMenuLayer) {
+        topOpenMenuBtn.addEventListener('click', () => { 
+            newChatMenuLayer.style.display = 'flex'; 
+        });
+    }
+    
+    const closeNewChatMenuBtn = getById('closeNewChatMenuBtn');
+    if (closeNewChatMenuBtn && newChatMenuLayer) {
+        closeNewChatMenuBtn.addEventListener('click', () => { 
+            newChatMenuLayer.style.display = 'none'; 
+        });
+    }
+    
+    // Модальное окно Нового Контакта (с проверкой через Supabase)
+    const tgNewContactBtn = getById('tgNewContactBtn');
+    const contactModal = getById('contactModal');
+    if (tgNewContactBtn && contactModal) {
+        tgNewContactBtn.addEventListener('click', () => { 
+            contactModal.style.display = 'flex'; 
+        });
+    }
+    
+    const closeContactModalBtn = getById('closeContactModalBtn');
+    if (closeContactModalBtn && contactModal) {
+        closeContactModalBtn.addEventListener('click', () => { 
+            contactModal.style.display = 'none'; 
+        });
+    }
+
+    const saveContactModalBtn = getById('saveContactModalBtn');
+    if (saveContactModalBtn) {
+        saveContactModalBtn.addEventListener('click', async () => {
+            const modalContactId = getById('modalContactId');
+            const modalContactName = getById('modalContactName');
+            
+            const id = modalContactId ? modalContactId.value.trim() : '';
+            const name = modalContactName ? modalContactName.value.trim() : '';
+            
+            if (!id || !name) {
+                showToast("Заполните все поля");
+                return;
+            }
+            
+            // Проверяем, существует ли пользователь в Supabase
+            const userExists = await checkUserExists(id);
+            if (!userExists) {
+                return; // Сообщение об ошибке уже показано в checkUserExists
+            }
+
+            // Проверяем, не добавлен ли уже этот контакт
+            const alreadyExists = localDatabase.contacts.some(c => c.id === id);
+            if (alreadyExists) {
+                showToast("Этот контакт уже добавлен");
+                return;
+            }
+
+            const newContact = { id, name, isGroup: false };
+            localDatabase.contacts.push(newContact);
+            safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
+
+            if (supabaseClient && myProfileData) {
+                try { 
+                    await supabaseClient.from('contacts').insert([{ user_id: myProfileData.id, contact_sid: id, contact_name: name }]); 
+                } catch(e){
+                    console.error("Ошибка сохранения контакта в Supabase:", e);
+                }
+            }
+
+            if (modalContactId) modalContactId.value = '';
+            if (modalContactName) modalContactName.value = '';
+            if (contactModal) contactModal.style.display = 'none';
+            renderLocalChatsAndContacts();
+            showToast('Контакт сохранен!');
+        });
+    }
 
     // Модальное окно Новой Группы
     const tgNewGroupBtn = getById('tgNewGroupBtn');
@@ -689,6 +904,7 @@ if (saveContactModalBtn) {
             }
         });
     }
+}
 
 // ==========================================================================
 // ЛОКАЛИЗАЦИЯ И ИНТЕРФЕЙСНЫЙ МЕНЕДЖМЕНТ
@@ -815,6 +1031,43 @@ function appendChatMessage(text, type = 'sender', specialLayoutHtml = null) {
     
     chatMessagesArea.appendChild(wrapper);
     chatMessagesArea.scrollTop = chatMessagesArea.scrollHeight;
+}
+
+// Функция добавления контакта
+async function addNewContact(sabitovId) {
+    if (!sabitovId) {
+        showToast("Введите SabitovID");
+        return;
+    }
+
+    // 1. Проверка, не добавляем ли мы себя
+    if (myProfileData && myProfileData.id === sabitovId) {
+        showToast("Нельзя добавить самого себя");
+        return;
+    }
+
+    // 2. Проверка, нет ли уже такого контакта
+    if (localDatabase.contacts.find(c => c.id === sabitovId)) {
+        showToast("Контакт уже добавлен");
+        return;
+    }
+
+    // 3. Проверка существования (через Supabase или "временно" для локального режима)
+    const exists = await checkUserExists(sabitovId);
+    if (!exists) return; // checkUserExists сама выводит toast при ошибке
+
+    // 4. Добавляем в базу
+    const newContact = {
+        id: sabitovId,
+        name: "Новый контакт", // Можно доработать для получения имени
+        lastSeen: "Онлайн"
+    };
+    
+    localDatabase.contacts.push(newContact);
+    safeLocalSet('sabitov_local_db', JSON.stringify(localDatabase));
+    
+    showToast("Контакт успешно добавлен!");
+    renderLocalChatsAndContacts(); // Функция, которая обновляет список чатов
 }
 
 function connectRealtimeMessages() {
