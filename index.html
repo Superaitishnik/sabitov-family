@@ -5,15 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sabitov Messenger</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="light-theme">
 
     <div class="toast-notification" id="toast">Успешно скопировано!</div>
 
     <div class="app-container" id="appContainer">
         <header class="top-bar" id="topBar">
-            <button class="lang-btn">🌐 EN</button>
-            <button class="theme-btn">🌙</button>
+            <div class="lang-dropdown-wrapper">
+                <button class="lang-btn" id="langBtn">🌐 RU</button>
+                <div class="lang-menu" id="langMenu">
+                    <button data-lang="ru">Русский</button>
+                    <button data-lang="en">English</button>
+                </div>
+            </div>
+            <button class="theme-btn" id="themeToggleBtn">🌙</button>
         </header>
 
         <div class="slider-window" id="sliderWindow">
@@ -21,8 +28,8 @@
                 <section class="slide">
                     <div class="main-content">
                         <div class="logo">S</div>
-                        <h1 class="title">Добро пожаловать<br>в Sabitov</h1>
-                        <p class="subtitle">Мессенджер нового поколения<br>с максимальной конфиденциальностью</p>
+                        <h1 class="title" data-i18n="slide1_title">Добро пожаловать<br>в Sabitov</h1>
+                        <p class="subtitle" data-i18n="slide1_sub">Мессенджер нового поколения<br>с максимальной конфиденциальностью</p>
                     </div>
                 </section>
                 <section class="slide">
@@ -33,8 +40,8 @@
                                 <div class="lock-body"></div>
                             </div>
                         </div>
-                        <h1 class="title">Шифрование<br>от начала до конца</h1>
-                        <p class="subtitle">Все сообщения защищены сквозным шифрованием.<br>Никто не может прочитать ваши данные</p>
+                        <h1 class="title" data-i18n="slide2_title">Шифрование<br>от начала до конца</h1>
+                        <p class="subtitle" data-i18n="slide2_sub">Все сообщения защищены сквозным шифрованием.<br>Никто не может прочитать ваши данные</p>
                     </div>
                 </section>
                 <section class="slide">
@@ -45,8 +52,8 @@
                                 <div class="eye-slash"></div>
                             </div>
                         </div>
-                        <h1 class="title">Ghost Mode</h1>
-                        <p class="subtitle">Станьте невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете</p>
+                        <h1 class="title" data-i18n="slide3_title">Ghost Mode</h1>
+                        <p class="subtitle" data-i18n="slide3_sub">Станьте невидимым. Никто не узнает, что вы онлайн, читаете сообщения или печатаете</p>
                     </div>
                 </section>
                 <section class="slide">
@@ -57,8 +64,8 @@
                                 <div class="spark"></div>
                             </div>
                         </div>
-                        <h1 class="title">Протокол Fenix</h1>
-                        <p class="subtitle">Одно нажатие — и все ваши данные будут безвозвратно удалены с наших серверов</p>
+                        <h1 class="title" data-i18n="slide4_title">Протокол Fenix</h1>
+                        <p class="subtitle" data-i18n="slide4_sub">Одно нажатие — и все ваши данные будут безвозвратно удалены с наших серверов</p>
                     </div>
                 </section>
                 <section class="slide">
@@ -68,8 +75,8 @@
                             <div class="tech-core"></div>
                             <div class="tech-orbit"></div>
                         </div>
-                        <h1 class="title">SabitovID</h1>
-                        <p class="subtitle">Никаких телефонов и почты.<br>Только ваш уникальный SabitovID<br>и PIN-код для входа</p>
+                        <h1 class="title" data-i18n="slide5_title">SabitovID</h1>
+                        <p class="subtitle" data-i18n="slide5_sub">Никаких телефонов и почты.<br>Только ваш уникальный SabitovID<br>и PIN-код для входа</p>
                     </div>
                 </section>
             </div>
@@ -84,8 +91,8 @@
                 <span class="dot"></span>
             </div>
             <div class="buttons-group">
-                <button class="next-btn" id="nextBtn">Далее</button>
-                <button class="skip-link" id="skipBtn">Пропустить</button>
+                <button class="next-btn" id="nextBtn" data-i18n="next">Далее</button>
+                <button class="skip-link" id="skipBtn" data-i18n="skip">Пропустить</button>
             </div>
         </footer>
 
@@ -95,14 +102,14 @@
                 <div class="icon-circle blue-bg-light">
                     <div class="at-sign">@</div>
                 </div>
-                <h1 class="title">Создайте имя пользователя</h1>
-                <p class="subtitle">Это ваш уникальный идентификатор в Sabitov.<br>Без номера телефона, без почты.</p>
+                <h1 class="title" data-i18n="reg1_title">Создайте имя пользователя</h1>
+                <p class="subtitle" data-i18n="reg1_sub">Это ваш уникальный идентификатор в Sabitov.<br>Без номера телефона, без почты.</p>
                 <div class="input-container">
                     <input type="text" placeholder="Имя пользователя" id="usernameInput" autocomplete="off">
                 </div>
             </div>
             <footer class="bottom-area">
-                <button class="next-btn disabled" id="regNextBtn" disabled>Далее</button>
+                <button class="next-btn disabled" id="regNextBtn" disabled data-i18n="next">Далее</button>
             </footer>
         </div>
 
@@ -115,14 +122,14 @@
                         <div class="avatar-body"></div>
                     </div>
                 </div>
-                <h1 class="title">Как вас зовут?</h1>
-                <p class="subtitle">Это имя увидят другие пользователи</p>
+                <h1 class="title" data-i18n="reg2_title">Как вас зовут?</h1>
+                <p class="subtitle" data-i18n="reg2_sub">Это имя увидят другие пользователи</p>
                 <div class="input-container">
                     <input type="text" placeholder="Отображаемое имя" id="nameInput" autocomplete="off">
                 </div>
             </div>
             <footer class="bottom-area">
-                <button class="next-btn disabled" id="nameNextBtn" disabled>Далее</button>
+                <button class="next-btn disabled" id="nameNextBtn" disabled data-i18n="next">Далее</button>
             </footer>
         </div>
 
@@ -134,14 +141,14 @@
                     <div class="tech-core"></div>
                     <div class="tech-orbit"></div>
                 </div>
-                <h1 class="title">Ваш SabitovID</h1>
+                <h1 class="title" data-i18n="reg3_title">Ваш SabitovID</h1>
                 <div class="generated-id-box" id="generatedIdBox" title="Нажмите, чтобы скопировать">
                     <span id="sabitovIdText">SID-00000000</span>
                 </div>
-                <p class="subtitle">Запомните ваш SabitovID.<br>Он понадобится для входа в аккаунт.</p>
+                <p class="subtitle" data-i18n="reg3_sub">Запомните ваш SabitovID.<br>Он понадобится для входа в аккаунт.</p>
             </div>
             <footer class="bottom-area">
-                <button class="next-btn" id="idNextBtn">Продолжить</button>
+                <button class="next-btn" id="idNextBtn" data-i18n="continue">Продолжить</button>
             </footer>
         </div>
 
@@ -151,8 +158,8 @@
                 <div class="icon-circle purple-bg-light">
                     <div class="pin-lock-icon"></div>
                 </div>
-                <h1 class="title">Создайте PIN-код</h1>
-                <p class="subtitle">4-значный код для защиты аккаунта</p>
+                <h1 class="title" data-i18n="pin1_title">Создайте PIN-код</h1>
+                <p class="subtitle" data-i18n="pin1_sub">4-значный код для защиты аккаунта</p>
                 <div class="pin-dots-container" id="createPinDots">
                     <span class="pin-dot"></span>
                     <span class="pin-dot"></span>
@@ -182,8 +189,8 @@
                 <div class="icon-circle purple-bg-light">
                     <div class="pin-lock-icon"></div>
                 </div>
-                <h1 class="title">Подтвердите PIN</h1>
-                <p class="subtitle">4-значный код для защиты аккаунта</p>
+                <h1 class="title" data-i18n="pin2_title">Подтвердите PIN</h1>
+                <p class="subtitle" data-i18n="pin2_sub">4-значный код для защиты аккаунта</p>
                 <div class="pin-dots-container" id="confirmPinDots">
                     <span class="pin-dot"></span>
                     <span class="pin-dot"></span>
@@ -209,13 +216,57 @@
 
         <div class="main-app-screen" id="mainAppScreen">
             
+            <div class="tg-menu-layer" id="newChatMenuLayer">
+                <header class="chat-room-header">
+                    <button class="chat-back-btn" id="closeNewChatMenuBtn">‹</button>
+                    <div class="chat-room-title-block"><span class="chat-room-name">Новое сообщение</span></div>
+                </header>
+                <div class="tg-menu-options">
+                    <button class="tg-option-btn" id="tgNewContactBtn">
+                        <span class="tg-icon-box blue">👤</span> Новый контакт
+                    </button>
+                    <button class="tg-option-btn" id="tgNewGroupBtn">
+                        <span class="tg-icon-box green">👥</span> Новая группа
+                    </button>
+                </div>
+                <div class="support-label" style="margin-top: 15px;">Ваши контакты</div>
+                <div class="tg-contacts-scroll-list" id="tgContactsScrollList">
+                    </div>
+            </div>
+
+            <div class="custom-modal-overlay" id="contactModal">
+                <div class="custom-modal-box">
+                    <h3>Добавить новый контакт</h3>
+                    <input type="text" id="modalContactId" placeholder="Введите SabitovID (SID-...)">
+                    <input type="text" id="modalContactName" placeholder="Имя контакта">
+                    <div class="modal-buttons">
+                        <button class="modal-cancel" id="closeContactModalBtn">Отмена</button>
+                        <button class="modal-confirm" id="saveContactModalBtn">Добавить</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-modal-overlay" id="groupModal">
+                <div class="custom-modal-box">
+                    <h3>Создать новую группу</h3>
+                    <input type="text" id="modalGroupName" placeholder="Название группы">
+                    <div class="support-label" style="text-align: left; padding: 5px 0;">Выберите участников:</div>
+                    <div class="modal-checkbox-list" id="modalGroupContactsList">
+                        </div>
+                    <div class="modal-buttons">
+                        <button class="modal-cancel" id="closeGroupModalBtn">Отмена</button>
+                        <button class="modal-confirm" id="saveGroupModalBtn">Создать</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="chat-room-layer" id="chatRoomLayer">
                 <header class="chat-room-header">
                     <button class="chat-back-btn" id="closeChatBtn">‹</button>
                     <div class="chat-room-title-block">
-                        <span class="chat-room-name">Sabitov Support</span>
+                        <span class="chat-room-name" id="activeChatHeaderName">Sabitov Support</span>
                     </div>
-                    <div class="chat-room-avatar">🎧</div>
+                    <div class="chat-room-avatar" id="activeChatHeaderAvatar">🎧</div>
                 </header>
                 
                 <div class="crypto-notice-bar">
@@ -223,10 +274,7 @@
                 </div>
 
                 <div class="chat-messages-area" id="chatMessagesArea">
-                    <div class="msg-bubble-wrapper item-receiver">
-                        <div class="chat-msg-text">Здравствуйте! Добро пожаловать в Sabitov. Чем можем помочь?</div>
                     </div>
-                </div>
 
                 <div class="attachment-popup-menu" id="attachMenu">
                     <button class="attach-option" id="attachMediaBtn">🖼️ Photo/Video</button>
@@ -238,7 +286,7 @@
 
                 <footer class="chat-input-footer">
                     <button class="chat-add-btn" id="chatPlusBtn">+</button>
-                    <div class="chat-input-wrapper">
+                    <div class="premium-input-container">
                         <input type="text" placeholder="Сообщение..." id="chatMessageField" autocomplete="off">
                     </div>
                     <button class="chat-mic-btn" id="chatMicBtn">
@@ -251,7 +299,7 @@
             <div id="mainAppContentArea" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
                 <header class="app-header">
                     <h1 class="app-main-title" id="appSectionTitle">Чаты</h1>
-                    <button class="write-btn">
+                    <button class="write-btn" id="topOpenMenuBtn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </button>
                 </header>
@@ -260,25 +308,26 @@
                     <div class="tab-content-block" id="tab-chats">
                         <div class="search-bar-container">
                             <span class="search-icon">🔍</span>
-                            <input type="text" placeholder="Поиск по юзернейму" class="search-input">
+                            <input type="text" placeholder="Поиск чата" class="search-input" id="chatSearchInput">
                         </div>
                         <div class="support-label">
                             <span class="headset-icon">🎧</span> Обращения в поддержку
                         </div>
+                        
                         <div class="chat-item" id="openSupportChatBlock">
-                            <div class="chat-avatar-blue">
-                                <span class="avatar-headset">🎧</span>
-                            </div>
+                            <div class="chat-avatar-blue"><span class="avatar-headset">🎧</span></div>
                             <div class="chat-info">
                                 <div class="chat-name-row">
                                     <span class="chat-name">Sabitov Support <span class="verified-badge">✓</span></span>
-                                   </div>
-                                <p class="chat-last-msg" id="chatListSubtext">Здравствуйте! Добро пожаловать...</p>
+                                </div>
+                                <p class="chat-last-msg" id="chatListSubtext">Здравствуйте! Чем можем помочь?</p>
                             </div>
-                            <div class="chat-meta">
-                                <span class="unread-badge" id="listUnreadCounter">1</span>
-                            </div>
+                            <div class="chat-meta"><span class="unread-badge" id="listUnreadCounter">1</span></div>
                         </div>
+
+                        <div class="support-label" style="margin-top: 15px;">Личные диалоги и группы</div>
+                        <div id="dynamicChatsList">
+                            </div>
                     </div>
 
                     <div class="tab-content-block" id="tab-profile" style="display: none;">
